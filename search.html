@@ -1,0 +1,172 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Binary Tree Visualization</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+    }
+    .tree-container {
+      position: relative;
+      width: 100%;
+      height: 600px;
+      margin-top: 30px;
+      border: 1px solid #ccc;
+      overflow: hidden;
+    }
+    .node {
+      position: absolute;
+      width: 40px;
+      height: 40px;
+      background-color: #4CAF50;
+      color: white;
+      text-align: center;
+      line-height: 40px;
+      border-radius: 50%;
+      z-index: 1;
+    }
+    .highlight {
+      background-color: orange !important;
+    }
+    .found {
+      background-color: #007bff !important;
+    }
+    svg {
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 0;
+    }
+  </style>
+</head>
+<body>
+  <h2>Binary Search Tree Visualization</h2>
+  <input id="valuesInput" placeholder="e.g. 20,10,30,5,15" />
+  <button onclick="buildTree()">Build Tree</button>
+  <input id="searchInput" placeholder="Search value" />
+  <button onclick="searchTree()">Search</button>
+  <div class="tree-container" id="treeContainer">
+    <svg id="svgLines" width="100%" height="600"></svg>
+  </div>
+  <p id="status"></p>
+
+  <script>
+    class Node {
+      constructor(value) {
+        this.value = value;
+        this.left = null;
+        this.right = null;
+        this.x = 0;
+        this.y = 0;
+      }
+    }
+
+    let root = null;
+    const nodeSize = 40;
+    const levelGap = 80;
+
+    function insert(root, value) {
+      if (root === null) return new Node(value);
+      if (value < root.value) root.left = insert(root.left, value);
+      else root.right = insert(root.right, value);
+      return root;
+    }
+
+    function buildTree() {
+      const input = document.getElementById("valuesInput").value;
+      const values = input.split(",").map(v => parseInt(v.trim())).filter(v => !isNaN(v));
+      root = null;
+      values.forEach(v => {
+        root = insert(root, v);
+      });
+      drawTree();
+      document.getElementById("status").innerText = "Tree built!";
+    }
+
+    function assignCoords(node, depth = 0, xMin = 0, xMax = window.innerWidth) {
+      if (!node) return;
+      node.y = depth * levelGap + 40;
+      node.x = (xMin + xMax) / 2;
+      assignCoords(node.left, depth + 1, xMin, node.x);
+      assignCoords(node.right, depth + 1, node.x, xMax);
+    }
+
+    function drawTree() {
+      const container = document.getElementById("treeContainer");
+      const svg = document.getElementById("svgLines");
+
+      // Clear previous nodes
+      const existingNodes = container.querySelectorAll(".node");
+      existingNodes.forEach(node => node.remove());
+
+      // Clear previous lines
+      svg.innerHTML = '';
+
+      assignCoords(root);
+      drawNodeAndLines(root, container, svg);
+    }
+
+    function drawNodeAndLines(node, container, svg) {
+      if (!node) return;
+
+      const nodeDiv = document.createElement("div");
+      nodeDiv.className = "node";
+      nodeDiv.id = `node-${node.value}`;
+      nodeDiv.textContent = node.value;
+      nodeDiv.style.left = `${node.x - nodeSize / 2}px`;
+      nodeDiv.style.top = `${node.y}px`;
+      container.appendChild(nodeDiv);
+
+      if (node.left) {
+        drawLine(svg, node.x, node.y, node.left.x, node.left.y);
+        drawNodeAndLines(node.left, container, svg);
+      }
+      if (node.right) {
+        drawLine(svg, node.x, node.y, node.right.x, node.right.y);
+        drawNodeAndLines(node.right, container, svg);
+      }
+    }
+
+    function drawLine(svg, x1, y1, x2, y2) {
+      const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      line.setAttribute("x1", x1);
+      line.setAttribute("y1", y1 + nodeSize / 2);
+      line.setAttribute("x2", x2);
+      line.setAttribute("y2", y2);
+      line.setAttribute("stroke", "black");
+      line.setAttribute("stroke-width", "2");
+      svg.appendChild(line);
+    }
+
+    function searchTree() {
+      const value = parseInt(document.getElementById("searchInput").value.trim());
+      if (isNaN(value)) return alert("Enter valid number!");
+      const path = [];
+      let current = root;
+      while (current) {
+        path.push(current);
+        if (value === current.value) break;
+        current = value < current.value ? current.left : current.right;
+      }
+      highlightPath(path, value);
+    }
+
+    function highlightPath(path, target) {
+      path.forEach((node, i) => {
+        setTimeout(() => {
+          const el = document.getElementById(`node-${node.value}`);
+          el.classList.add("highlight");
+          if (node.value === target) {
+            el.classList.add("found");
+            document.getElementById("status").innerText = `Found node ${target}`;
+          } else {
+            document.getElementById("status").innerText = `Checking node ${node.value}...`;
+          }
+        }, i * 800);
+      });
+    }
+  </script>
+</body>
+</html>
